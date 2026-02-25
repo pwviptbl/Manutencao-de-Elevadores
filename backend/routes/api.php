@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CondominiumController;
+use App\Http\Controllers\Api\DispatchController;
 use App\Http\Controllers\Api\ElevatorController;
+use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\ServiceOrderController;
 use App\Http\Controllers\Api\TechnicianController;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +60,25 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // ─────────────────────────────────────────
     Route::get('technicians/available', [TechnicianController::class, 'available']);
     Route::apiResource('technicians', TechnicianController::class);
+
+    // ─────────────────────────────────────────
+    // DESPACHO
+    // ─────────────────────────────────────────
+    Route::prefix('dispatch')->group(function () {
+        Route::get('queue',                [DispatchController::class, 'queue']);
+        Route::post('{orderId}/assign',    [DispatchController::class, 'assign']);
+        Route::post('{orderId}/unassign',  [DispatchController::class, 'unassign']);
+    });
+
+    // ─────────────────────────────────────────
+    // IMPORTAÇÕES (CSV / XLSX)
+    // ─────────────────────────────────────────
+    Route::prefix('imports')->group(function () {
+        Route::get('/',                    [ImportController::class, 'index']);
+        Route::post('/',                   [ImportController::class, 'store']);
+        Route::get('/{id}',                [ImportController::class, 'show']);
+        Route::get('/templates/{type}',    [ImportController::class, 'template']);
+    });
 
     // ─────────────────────────────────────────
     // DASHBOARD (KPIs para o painel em tempo real)
