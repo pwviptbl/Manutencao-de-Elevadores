@@ -115,7 +115,7 @@ O filtro deve cobrir ao menos os seguintes termos (acentuados e sem acento):
 | Mecanismo | Onde Atua | O que Protege |
 |---|---|---|
 | RLS PostgreSQL | Banco de dados | Isolamento físico de dados por tenant |
-| JWT + tenant_id | API (middleware) | Autenticação e autorização por requisição |
+| Sanctum (cookie/token) + tenant_id | API (middleware) | Autenticação e autorização por requisição |
 | stancl/tenancy | Laravel (aplicação) | Contexto de tenant injetado automaticamente |
 | Rate limiting | Borda (Nginx/Cloudflare) | Prevenção de abuso e DDoS por tenant |
 | Schema por tenant | Banco (opcional, tier Enterprise) | Isolamento total para clientes críticos |

@@ -36,7 +36,7 @@ MVP (Fase 1)                          Segunda Fase
 |----------------|----------|
 | Criar chamado | Manual (painel) ou automático (IA) |
 | Prioridades | P0 (emergência), P1 (urgente), P2 (normal), P3 (baixa) |
-| Status | `aberto → atribuído → em_andamento → concluído → fechado` |
+| Status | `aberto → atribuido → em_andamento → concluido → fechado` |
 | Tipos | Corretiva, Preventiva, Emergência |
 | Origem | WhatsApp, Voz, Painel, Importação |
 | Histórico | Timeline com todas as mudanças, quem fez e quando |

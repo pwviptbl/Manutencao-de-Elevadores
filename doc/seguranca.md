@@ -22,7 +22,7 @@
 │         TLS obrigatório em toda comunicação        │
 ├───────────────────────────────────────────────────┤
 │            APLICAÇÃO (Laravel)                     │
-│    JWT + tenant_id validado em todo middleware      │
+│  Sanctum (cookie/token) + tenant_id em middleware  │
 │    stancl/tenancy: contexto automático             │
 ├───────────────────────────────────────────────────┤
 │            BANCO DE DADOS (PostgreSQL)             │
@@ -38,7 +38,7 @@
 | Mecanismo | Onde Atua | O que Protege |
 |-----------|-----------|---------------|
 | **RLS PostgreSQL** | Banco de dados | Isolamento físico de dados por tenant |
-| **JWT + tenant_id** | API (middleware) | Autenticação e autorização por requisição |
+| **Sanctum + tenant_id** | API (middleware) | Autenticação e autorização por requisição |
 | **stancl/tenancy** | Laravel (aplicação) | Contexto de tenant injetado automaticamente |
 | **Rate limiting** | Borda (Nginx/Cloudflare) | Prevenção de abuso e DDoS por tenant |
 | **Schema por tenant** | Banco (opcional, tier Enterprise) | Isolamento total para clientes críticos |
@@ -70,7 +70,7 @@ class EnsureTenant
     {
         $tenantId = auth()->user()->tenant_id;
         
-        DB::statement("SET app.tenant_id = '{$tenantId}'");
+        DB::statement("SELECT set_config('app.tenant_id', ?, false)", [(string) $tenantId]);
         
         return $next($request);
     }
@@ -83,7 +83,7 @@ class EnsureTenant
 
 | Camada | Controle | Ferramenta | Status |
 |--------|----------|------------|--------|
-| **API** | JWT com tenant_id validado em todo middleware | Laravel Sanctum / tymon/jwt-auth | 🔲 |
+| **API** | Sanctum com tenant_id validado em todo middleware | Laravel Sanctum + middleware `EnsureTenant` | 🔲 |
 | **Banco** | RLS obrigatório + usuário DB sem permissão de DROP | PostgreSQL nativo | 🔲 |
 | **Secrets** | Zero secrets em código ou logs | Variável de ambiente / Vault | 🔲 |
 | **SAST** | Análise estática a cada commit | Enlightn + Psalm + Semgrep | 🔲 |

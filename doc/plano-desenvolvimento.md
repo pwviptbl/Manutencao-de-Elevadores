@@ -57,7 +57,7 @@ Projeto    MVP        MVP         Integração  1 cliente  70 clientes
 | 1.1.1 | Instalar e configurar stancl/tenancy | Package Laravel para multi-tenancy |
 | 1.1.2 | Modelar tabela `tenants` | ID, nome, slug, plano, configurações |
 | 1.1.3 | Implementar RLS no PostgreSQL | Políticas por tenant_id em todas as tabelas |
-| 1.1.4 | Autenticação com Laravel Sanctum | Login, logout, refresh token |
+| 1.1.4 | Autenticação com Laravel Sanctum | Login, logout, revogação/expiração de token |
 | 1.1.5 | Sistema de Roles (RBAC) | Roles: `admin`, `atendente`, `mecanico`, `visualizador` |
 | 1.1.6 | Middleware de tenant | Validar tenant_id em todo request autenticado |
 | 1.1.7 | Testes de isolamento | Garantir que Tenant A não acessa dados do Tenant B |
@@ -75,7 +75,7 @@ Projeto    MVP        MVP         Integração  1 cliente  70 clientes
 | 1.2.6 | CRUD de Elevadores | Vinculados a condomínios |
 | 1.2.7 | CRUD de Condomínios | Com validação de CNPJ |
 | 1.2.8 | CRUD de Mecânicos/Técnicos | Com região de atendimento |
-| 1.2.9 | Máquina de estados do chamado | `aberto → atribuído → em_andamento → concluído → fechado` |
+| 1.2.9 | Máquina de estados do chamado | `aberto → atribuido → em_andamento → concluido → fechado` |
 | 1.2.10 | Histórico de mudanças (audit log) | Registrar quem alterou o quê e quando |
 
 ### Sprint 1.3 — Despacho e Importação (Semana 3-4)
