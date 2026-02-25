@@ -115,7 +115,7 @@ make setup
 | # | Fase | Duração | Status |
 |---|------|---------|--------|
 | 0 | Setup do Projeto e Infra | 1 semana | ✅ Concluído |
-| 1 | Backend MVP | 4-5 semanas | 🔲 Pendente |
+| 1 | Backend MVP | 4-5 semanas | � Em andamento |
 | 2 | Frontend MVP | 4-5 semanas | 🔲 Pendente |
 | 3 | Integração IA | 3-4 semanas | 🔲 Pendente |
 | 4 | Piloto com 1 cliente | A definir | 🔲 Pendente |
