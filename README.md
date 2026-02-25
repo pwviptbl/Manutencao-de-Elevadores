@@ -42,19 +42,84 @@ Plataforma SaaS multi-tenant para **callcenter B2B** que atende ~70 empresas de 
 
 ---
 
-## Próximos Passos
+## Como Rodar (Primeira Vez)
 
-| # | Etapa | Status |
-|---|-------|--------|
-| 1 | Reunião de Alinhamento | 🔲 Pendente |
-| 2 | Documentação de Requisitos | 🔲 Pendente |
-| 3 | Modelagem do Banco | 🔲 Pendente |
-| 4 | Setup do Projeto | 🔲 Pendente |
-| 5 | MVP Backend | 🔲 Pendente |
-| 6 | MVP Frontend | 🔲 Pendente |
-| 7 | Integração IA | 🔲 Pendente |
-| 8 | Piloto com 1 cliente | 🔲 Pendente |
-| 9 | Rollout geral (70 clientes) | 🔲 Pendente |
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/pwviptbl/Manutencao-de-Elevadores.git
+cd Manutencao-de-Elevadores
+
+# 2. Setup completo (Docker, .env, migrations, seeders)
+make setup
+
+# 3. Acesse
+# Aplicação:  http://localhost
+# API:        http://localhost/api
+# Horizon:    http://localhost/horizon
+# WebSocket:  ws://localhost/app
+```
+
+> **Pré-requisitos:** Docker + Docker Compose instalados.
+
+---
+
+## Estrutura do Repositório
+
+```
+/
+├── backend/              # Laravel 11 (PHP 8.3+)
+│   ├── app/
+│   │   ├── Http/Controllers/{Api,Webhook}/
+│   │   ├── Models/
+│   │   ├── Services/{AI,WhatsApp,Voip,Invoice}/
+│   │   ├── Jobs/
+│   │   └── Events/
+│   ├── database/{migrations,seeders,factories}/
+│   ├── routes/
+│   └── tests/{Feature,Unit}/
+├── frontend/             # Vue 3 + Vite
+│   └── src/
+│       ├── components/{layout,orders,alerts,shared}/
+│       ├── pages/{orders,condominiums,elevators,mechanic}/
+│       ├── stores/
+│       └── composables/
+├── docker/
+│   ├── nginx/default.conf
+│   └── postgres/init.sql
+├── .github/workflows/ci.yml
+├── docker-compose.yml
+└── Makefile
+```
+
+---
+
+## Comandos Úteis
+
+| Comando | Descrição |
+|---------|-----------|
+| `make up` | Sobe o ambiente |
+| `make down` | Para o ambiente |
+| `make test` | Roda todos os testes |
+| `make test-coverage` | Testes com cobertura (mín. 80%) |
+| `make migrate` | Executa migrations |
+| `make fresh` | Recria banco + seed |
+| `make lint` | Verifica estilo de código |
+| `make shell-backend` | Shell no container PHP |
+| `make logs` | Logs de todos os serviços |
+| `make help` | Lista todos os comandos |
+
+---
+
+## Fases de Desenvolvimento
+
+| # | Fase | Duração | Status |
+|---|------|---------|--------|
+| 0 | Setup do Projeto e Infra | 1 semana | ✅ Concluído |
+| 1 | Backend MVP | 4-5 semanas | 🔲 Pendente |
+| 2 | Frontend MVP | 4-5 semanas | 🔲 Pendente |
+| 3 | Integração IA | 3-4 semanas | 🔲 Pendente |
+| 4 | Piloto com 1 cliente | A definir | 🔲 Pendente |
+| 5 | Rollout geral (70 clientes) | A definir | 🔲 Pendente |
 
 ---
 

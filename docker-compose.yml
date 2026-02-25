@@ -1,0 +1,213 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────
+  # BACKEND — Laravel 11 (PHP 8.3)
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: elevadores_backend
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-elevadores}
+      - DB_USERNAME=${DB_USERNAME:-elevadores}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REVERB_HOST=reverb
+      - REVERB_PORT=8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # REVERB — WebSocket (Laravel Reverb)
+  # ─────────────────────────────────────────
+  reverb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: elevadores_reverb
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # QUEUE — Laravel Worker
+  # ─────────────────────────────────────────
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: elevadores_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    command: php artisan queue:work --tries=3 --backoff=60
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # SCHEDULER — Laravel Scheduler
+  # ─────────────────────────────────────────
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: elevadores_scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    command: php artisan schedule:work
+    depends_on:
+      - backend
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # FRONTEND — Vue 3 + Vite (dev server)
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: elevadores_frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_REVERB_HOST=localhost
+      - VITE_REVERB_PORT=8080
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # POSTGRES 16
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: elevadores_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-elevadores}
+      POSTGRES_USER: ${DB_USERNAME:-elevadores}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-elevadores}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # REDIS 7
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: elevadores_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-secret} --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-secret}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # NGINX — Proxy reverso
+  # ─────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: elevadores_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./backend:/var/www
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - elevadores
+
+  # ─────────────────────────────────────────
+  # HORIZON — Dashboard de Filas
+  # ─────────────────────────────────────────
+  horizon:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: elevadores_horizon
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    command: php artisan horizon
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - elevadores
+
+# ─────────────────────────────────────────
+# VOLUMES
+# ─────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ─────────────────────────────────────────
+# REDES
+# ─────────────────────────────────────────
+networks:
+  elevadores:
+    driver: bridge

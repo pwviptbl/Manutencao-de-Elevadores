@@ -1,0 +1,242 @@
+name: CI — Elevadores SaaS
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ─────────────────────────────────────────
+# VARIÁVEIS GLOBAIS
+# ─────────────────────────────────────────
+env:
+  PHP_VERSION: "8.3"
+  NODE_VERSION: "22"
+  DB_DATABASE: elevadores_test
+  DB_USERNAME: elevadores
+  DB_PASSWORD: secret
+
+jobs:
+  # ═══════════════════════════════════════
+  # JOB 1: Backend — Laravel
+  # ═══════════════════════════════════════
+  backend:
+    name: Backend (PHP ${{ env.PHP_VERSION }})
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: elevadores_test
+          POSTGRES_USER: elevadores
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, pgsql, redis, pcntl, bcmath, gd, zip, intl, mbstring, opcache
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Instalar dependências PHP
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Preparar .env de testes
+        working-directory: backend
+        run: |
+          cp .env.example .env.testing
+          sed -i 's/DB_HOST=postgres/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/DB_DATABASE=elevadores/DB_DATABASE=elevadores_test/' .env.testing
+          sed -i 's/REDIS_HOST=redis/REDIS_HOST=127.0.0.1/' .env.testing
+          php artisan key:generate --env=testing
+
+      # ─────────────────────────────────────────
+      # SAST — Análise estática de segurança
+      # ─────────────────────────────────────────
+      - name: SAST — Enlightn (segurança Laravel)
+        working-directory: backend
+        run: vendor/bin/enlightn --ci
+        continue-on-error: false
+
+      - name: SAST — Psalm (análise de tipos PHP)
+        working-directory: backend
+        run: vendor/bin/psalm --no-progress --show-info=false
+        continue-on-error: false
+
+      - name: SAST — Composer audit (vulnerabilidades)
+        working-directory: backend
+        run: composer audit
+
+      # ─────────────────────────────────────────
+      # QUALIDADE DE CÓDIGO
+      # ─────────────────────────────────────────
+      - name: Laravel Pint (code style)
+        working-directory: backend
+        run: vendor/bin/pint --test
+
+      # ─────────────────────────────────────────
+      # TESTES
+      # ─────────────────────────────────────────
+      - name: Migrations no banco de testes
+        working-directory: backend
+        run: php artisan migrate --env=testing --force
+
+      - name: PHPUnit (testes + cobertura)
+        working-directory: backend
+        run: |
+          vendor/bin/phpunit \
+            --coverage-clover storage/logs/coverage.xml \
+            --coverage-text \
+            --log-junit storage/logs/junit.xml
+        env:
+          DB_HOST: 127.0.0.1
+          REDIS_HOST: 127.0.0.1
+
+      - name: Verificar cobertura mínima (80%)
+        working-directory: backend
+        run: |
+          COVERAGE=$(grep -oP 'Lines:\s+\K[\d.]+' storage/logs/coverage.xml | head -1)
+          echo "Cobertura: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "❌ Cobertura abaixo do mínimo de 80%"
+            exit 1
+          fi
+
+      - name: Upload resultados de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/storage/logs/
+
+  # ═══════════════════════════════════════
+  # JOB 2: Frontend — Vue 3
+  # ═══════════════════════════════════════
+  frontend:
+    name: Frontend (Node ${{ env.NODE_VERSION }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências Node
+        working-directory: frontend
+        run: npm ci
+
+      - name: Auditoria de segurança (npm audit)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+      - name: ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: TypeScript check
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Build de produção
+        working-directory: frontend
+        run: npm run build
+
+      - name: Vitest (testes unitários)
+        working-directory: frontend
+        run: npm run test:unit
+
+  # ═══════════════════════════════════════
+  # JOB 3: SAST — Semgrep (cross-layer)
+  # ═══════════════════════════════════════
+  semgrep:
+    name: SAST — Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Semgrep scan (OWASP + Laravel + segurança geral)
+        run: |
+          semgrep scan \
+            --config=auto \
+            --config=p/owasp-top-ten \
+            --config=p/php \
+            --config=p/javascript \
+            --error \
+            --quiet \
+            --exclude=vendor \
+            --exclude=node_modules \
+            --exclude=storage
+
+  # ═══════════════════════════════════════
+  # JOB 4: Deploy para Staging
+  # (apenas na branch main)
+  # ═══════════════════════════════════════
+  deploy-staging:
+    name: Deploy → Staging
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, semgrep]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via Coolify webhook
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_DEPLOY_TOKEN }}" \
+            "${{ secrets.COOLIFY_STAGING_WEBHOOK_URL }}"
+
+      - name: Aguardar deploy e verificar health
+        run: |
+          sleep 30
+          curl -f "${{ secrets.STAGING_URL }}/api/health" || exit 1
+
+      - name: Notificar deploy
+        if: success()
+        run: echo "✅ Deploy de staging concluído — commit ${{ github.sha }}"

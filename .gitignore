@@ -1,0 +1,19 @@
+# ─────────────────────────────────────────
+# .gitignore — Elevadores SaaS (Monorepo)
+# ─────────────────────────────────────────
+
+# Ambiente
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# OS
+*.log
