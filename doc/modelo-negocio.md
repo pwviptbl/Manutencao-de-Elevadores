@@ -54,7 +54,7 @@ Starter          Pro              Business          Enterprise
 
 | Cenário | Clientes | Ticket Médio | Receita Bruta/mês |
 |---------|----------|-------------|-------------------|
-| **Conservador** (50% no Pro) | 70 | R$ 597 | R$ 41.790 |
+| **Conservador** (Baseado no plano Pro) | 70 | R$ 597 | R$ 41.790 |
 | **Realista** (mix Pro/Business) | 70 | R$ 750 | R$ 52.500 |
 | **Otimista** (expansão 100 clientes) | 100 | R$ 750 | R$ 75.000 |
 
@@ -79,7 +79,7 @@ Starter          Pro              Business          Enterprise
 | LLM (GPT-4o-mini) | R$ 80 a 220/mês | R$ 80 a 220/mês (igual) |
 | STT (Whisper API) | R$ 30 a 80/mês | R$ 30 a 80/mês (ou grátis self-hosted) |
 | NFS-e (Nuvem Fiscal) | R$ 150/mês | R$ 150/mês (igual) |
-| **TOTAL** | **R$ 1.360 a 2.100/mês** | **R$ 660 a 1.400/mês** |
+| **TOTAL** | **R$ 1.360 a 3.050/mês** | **R$ 660 a 1.400/mês** |
 
 ### 4.2 Evolução para Produção
 

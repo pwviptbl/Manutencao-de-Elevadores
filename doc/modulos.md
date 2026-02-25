@@ -19,7 +19,7 @@ MVP (Fase 1)                          Segunda Fase
 │ ✅ Painel Tempo Real    │           │ 💬 IA — WhatsApp        │
 │ ✅ App Mecânico (PWA)   │           │ 🎤 IA — Voz             │
 │ ✅ Multi-tenancy        │           │ 🏢 Schema por Tenant    │
-│ ✅ Importação Assíncrona│           │                         │
+│ ✅ Import. Assíncrona   │           │                         │
 │ ✅ Autenticação (RBAC)  │           │                         │
 └─────────────────────────┘           └─────────────────────────┘
 ```
