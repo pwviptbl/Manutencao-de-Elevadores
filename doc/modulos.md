@@ -1,13 +1,15 @@
 # Módulos da Plataforma
 
-> Plataforma SaaS — Callcenter de Manutenção de Elevadores  
-> Versão 1.0 | Fevereiro 2026
+> Sistema de Gerenciamento de Manutenção de Elevadores (SaaS)  
+> Versão 2.0 | Fevereiro 2026
 
 ---
 
 ## Visão Geral
 
 Os módulos estão organizados em duas fases: **MVP** (obrigatório no primeiro release) e **Segunda Fase** (expansão pós-validação com piloto).
+
+> **Nota:** Módulos de atendimento (WhatsApp, VoIP, IA de triagem) não fazem parte deste sistema. A integração com sistemas de atendimento ocorre via API pública.
 
 ```
 MVP (Fase 1)                          Segunda Fase
@@ -16,11 +18,13 @@ MVP (Fase 1)                          Segunda Fase
 │ ✅ Cadastro Elevadores  │           │ 📦 Controle de Estoque  │
 │ ✅ Cadastro Condomínios │           │ 📋 Contratos Manutenção │
 │ ✅ Despacho Mecânicos   │           │ 📊 Relatórios e BI      │
-│ ✅ Painel Tempo Real    │           │ 💬 IA — WhatsApp        │
-│ ✅ App Mecânico (PWA)   │           │ 🎤 IA — Voz             │
-│ ✅ Multi-tenancy        │           │ 🏢 Schema por Tenant    │
+│ ✅ Painel Tempo Real    │           │ 🏢 Schema por Tenant    │
+│ ✅ App Mecânico (PWA)   │           │                         │
+│ ✅ Multi-tenancy        │           │                         │
 │ ✅ Import. Assíncrona   │           │                         │
 │ ✅ Autenticação (RBAC)  │           │                         │
+│ ✅ API Pública REST     │           │                         │
+│ ✅ Webhooks de Saída    │           │                         │
 └─────────────────────────┘           └─────────────────────────┘
 ```
 
@@ -34,14 +38,15 @@ MVP (Fase 1)                          Segunda Fase
 
 | Funcionalidade | Detalhes |
 |----------------|----------|
-| Criar chamado | Manual (painel) ou automático (IA) |
+| Criar chamado | Manual (painel) ou automático (via API) |
 | Prioridades | P0 (emergência), P1 (urgente), P2 (normal), P3 (baixa) |
 | Status | `aberto → atribuido → em_andamento → concluido → fechado` |
 | Tipos | Corretiva, Preventiva, Emergência |
-| Origem | WhatsApp, Voz, Painel, Importação |
+| Origem | Painel, API, Importação |
 | Histórico | Timeline com todas as mudanças, quem fez e quando |
 | Filtros | Por status, prioridade, elevador, condomínio, mecânico, período |
 | SLA | Tempo máximo por prioridade; alertas de violação |
+| Referência externa | Campo `external_ref` para vincular com ID do sistema de atendimento |
 
 ### 2. Cadastro de Elevadores
 
@@ -74,7 +79,7 @@ MVP (Fase 1)                          Segunda Fase
 | Funcionalidade | Detalhes |
 |----------------|----------|
 | Fila de chamados | Ordenada por prioridade e SLA |
-| Atribuição | Manual (atendente) ou automática (por região/disponibilidade) |
+| Atribuição | Manual (gerente) ou automática (por região/disponibilidade) |
 | Status do mecânico | Disponível, Em atendimento, Indisponível |
 | Rastreamento | Qual mecânico está em qual chamado |
 | Região | Mecânico atende área geográfica definida |
@@ -88,6 +93,7 @@ MVP (Fase 1)                          Segunda Fase
 | Fila de atendimento | Próximos chamados a vencer SLA |
 | KPIs | Tempo médio de abertura, resolução, SLA cumprido |
 | Mecânicos ativos | Quem está onde, disponibilidade |
+| Chamados via API | Volume de chamados abertos por integração |
 
 **Tecnologia:** WebSocket via Laravel Reverb + Echo — atualização < 500ms.
 
@@ -137,16 +143,55 @@ MVP (Fase 1)                          Segunda Fase
 
 | Role | Acesso |
 |------|--------|
-| **Admin** | Tudo: config, usuários, relatórios, importação |
-| **Atendente** | Chamados, despacho, cadastros, alertas |
+| **Admin** | Tudo: config, usuários, API keys, relatórios, importação |
+| **Gerente** | Chamados, despacho, cadastros, relatórios, alertas |
 | **Mecânico** | Seus chamados, checklist, fotos, fechar OS |
 | **Visualizador** | Somente leitura: dashboard e relatórios |
+
+> **Nota:** O role `atendente` não existe neste sistema. Atendentes trabalham no sistema de atendimento (produto separado) e interagem via API pública.
+
+### 10. API Pública REST
+
+**Descrição:** Endpoints documentados para integração com qualquer sistema externo.
+
+| Aspecto | Detalhes |
+|---------|----------|
+| Autenticação | API Keys por tenant (MVP) → OAuth 2.0 (futuro) |
+| Formato | JSON |
+| Versionamento | Prefixo `/api/v1/` |
+| Documentação | OpenAPI/Swagger auto-gerado |
+| Rate limiting | Configurável por plano |
+| Idempotência | Header `Idempotency-Key` em POSTs |
+
+**Recursos expostos:**
+
+| Recurso | Endpoint | Operações |
+|---------|----------|-----------|
+| Chamados/OS | `/api/v1/orders` | CRUD + transição de status |
+| Elevadores | `/api/v1/elevators` | CRUD + histórico |
+| Condomínios | `/api/v1/condominiums` | CRUD + elevadores vinculados |
+| Técnicos | `/api/v1/technicians` | Listar + disponibilidade |
+| Webhooks | `/api/v1/webhooks` | Registrar, listar, remover |
+
+> Documentação completa em [doc/api-publica.md](api-publica.md)
+
+### 11. Webhooks de Saída
+
+**Descrição:** Notificação assíncrona de eventos para sistemas externos.
+
+| Aspecto | Detalhes |
+|---------|----------|
+| Eventos | `order.created`, `order.status_changed`, `order.assigned`, `order.completed`, etc. |
+| Formato | JSON com assinatura HMAC-SHA256 |
+| Retry | Até 5 tentativas com backoff exponencial |
+| Configuração | Admin registra URLs de webhook no painel |
+| Auditoria | Todas as deliveries logadas (sucesso/falha) |
 
 ---
 
 ## Segunda Fase — Módulos de Expansão
 
-### 10. Emissão de NFS-e
+### 12. Emissão de NFS-e
 
 | Aspecto | Detalhes |
 |---------|----------|
@@ -155,7 +200,7 @@ MVP (Fase 1)                          Segunda Fase
 | Multi-município | Suporte a diferentes prefeituras |
 | Armazenamento | XML e PDF da nota vinculados à OS |
 
-### 11. Controle de Estoque
+### 13. Controle de Estoque
 
 | Aspecto | Detalhes |
 |---------|----------|
@@ -164,7 +209,7 @@ MVP (Fase 1)                          Segunda Fase
 | Alertas | Estoque mínimo, reposição necessária |
 | Relatórios | Consumo por período, mecânico, tipo de peça |
 
-### 12. Contratos de Manutenção
+### 14. Contratos de Manutenção
 
 | Aspecto | Detalhes |
 |---------|----------|
@@ -173,7 +218,7 @@ MVP (Fase 1)                          Segunda Fase
 | SLA contratual | Definido por contrato, aplicado nos chamados |
 | Histórico | Renovações, reajustes, cancelamentos |
 
-### 13. Relatórios e BI
+### 15. Relatórios e BI
 
 | Relatório | Métricas |
 |-----------|----------|
@@ -182,25 +227,7 @@ MVP (Fase 1)                          Segunda Fase
 | Chamados | Volume por elevador, condomínio, período |
 | Custos | Custo por OS, por mecânico, por peça |
 | Performance | Ranking de mecânicos, tempo de resposta |
-
-### 14. IA — WhatsApp
-
-| Aspecto | Detalhes |
-|---------|----------|
-| Plataforma | Evolution API (MVP) → Meta Cloud API (produção) |
-| Fluxo | Mensagem → Filtro Regex → LLM → Chamado |
-| Multi-tenant | QR Code ou número por empresa |
-| Conversação | Multi-turno para coleta de informações |
-
-### 15. IA — Voz
-
-| Aspecto | Detalhes |
-|---------|----------|
-| VOIP | Asterisk self-hosted (ou Twilio) |
-| STT | Whisper API (OpenAI ou self-hosted) |
-| Pipeline | Ligação → Transcrição → Filtro → LLM → Chamado |
-| URA | Menu inteligente de opções antes da IA |
-| Gravação | Armazenamento com retenção configurável |
+| Integrações | Volume de chamados via API vs manual |
 
 ### 16. Schema por Tenant (Enterprise)
 

@@ -1,109 +1,146 @@
 # Modelo de Negócio (SaaS B2B)
 
-> Plataforma SaaS — Callcenter de Manutenção de Elevadores  
-> Versão 1.0 | Fevereiro 2026
+> Sistema de Gerenciamento de Manutenção de Elevadores (SaaS)  
+> Versão 2.0 | Fevereiro 2026
 
 ---
 
 ## 1. Contexto de Negócio
 
-O cliente opera um callcenter B2B atendendo aproximadamente **70 empresas** de manutenção de elevadores. O modelo atual é totalmente manual: quando um condomínio liga ou envia mensagem reportando um problema, um atendente humano abre chamado no software específico de cada cliente — o que exige que a equipe domine **múltiplos sistemas distintos**.
+### 1.1 Dois Produtos, Dois Mercados
 
-### 1.1 Gargalos Identificados
+O ecossistema é composto por **dois sistemas independentes** que podem ser contratados separadamente:
 
-- Atendentes precisam dominar **N softwares diferentes** (um por empresa cliente)
-- Abertura de chamado manual: **média de 4 a 7 minutos** por atendimento
-- Nenhuma automação de triagem ou escalonamento por urgência
-- Dados descentralizados: histórico de manutenção fragmentado
+| Sistema | Operado por | Público-alvo | Função |
+|---------|-------------|-------------|--------|
+| **Sistema de Atendimento** | Empresa de callcenter (produto separado) | Operadores de atendimento | Receber ligações/WhatsApp, triagem por IA, abrir chamados via API |
+| **Sistema de Gerenciamento** | Este sistema | Empresas de manutenção de elevadores | Gestão de chamados, mecânicos, elevadores, OS, relatórios |
+
+### 1.2 Independência Comercial
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     CENÁRIOS POSSÍVEIS                           │
+│                                                                  │
+│  Cenário 1: Empresa contrata AMBOS os sistemas                  │
+│  → Atendimento abre chamados automaticamente via API             │
+│  → Gerenciamento processa e despacha mecânicos                   │
+│                                                                  │
+│  Cenário 2: Empresa contrata APENAS Gerenciamento                │
+│  → Usa o painel web manualmente para criar chamados              │
+│  → Ou integra com seu próprio sistema via API                    │
+│                                                                  │
+│  Cenário 3: Empresa contrata APENAS Atendimento                  │
+│  → Atendimento abre chamados no sistema próprio da empresa       │
+│  → Não usa nosso sistema de gerenciamento                        │
+│                                                                  │
+│  Cenário 4: Empresa cancela Atendimento, mantém Gerenciamento   │
+│  → Continua usando o gerenciamento normalmente                   │
+│  → Cria chamados manualmente ou integra outro sistema            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.3 Gargalos que o Gerenciamento Resolve
+
+- Dados descentralizados: histórico de manutenção fragmentado em planilhas e sistemas legados
 - Sem visibilidade consolidada de mecânicos, estoque e contratos
-
-### 1.2 Oportunidade
-
-O cliente já possui o ativo mais difícil de construir: **relacionamento consolidado com 70 empresas** e o fluxo operacional mapeado. A plataforma é a monetização desse relacionamento.
+- Falta de rastreamento de SLA e tempo de resposta
+- Sem padronização de checklist e procedimentos de manutenção
+- Comunicação falha entre operador e mecânico em campo
+- Nenhum sistema de despacho inteligente por região/disponibilidade
 
 ---
 
-## 2. Planos de Assinatura
+## 2. Planos de Assinatura — Sistema de Gerenciamento
 
 | Plano | Preço/mês | Perfil | O que inclui |
 |-------|-----------|--------|--------------|
-| **Starter** | R$ 297 | Empresa pequena | Até 5 técnicos, 100 chamados/mês, sem IA, sem NFS-e |
-| **Pro** | R$ 597 | Empresa média | Até 15 técnicos, ilimitado, IA WhatsApp, NFS-e |
-| **Business** | R$ 997 | Empresa grande | Ilimitado, IA Voz + WhatsApp, NFS-e, Estoque, Migração assistida |
-| **Enterprise** | A negociar | Rede de elevadores | Schema exclusivo, SLA 99.9%, suporte dedicado, API aberta |
+| **Starter** | R$ 197 | Empresa pequena | Até 5 técnicos, 100 chamados/mês, sem API, sem NFS-e |
+| **Pro** | R$ 397 | Empresa média | Até 15 técnicos, chamados ilimitados, API (rate limit básico), NFS-e |
+| **Business** | R$ 697 | Empresa grande | Técnicos ilimitados, API (rate limit alto), NFS-e, Estoque, Relatórios BI |
+| **Enterprise** | A negociar | Rede de elevadores | Schema exclusivo, SLA 99.9%, API sem rate limit, suporte dedicado |
 
-### Diferencial por Plano
+### 2.1 Diferencial por Plano
 
 ```
-Starter          Pro              Business          Enterprise
-├── Chamados     ├── Chamados     ├── Chamados      ├── Tudo Business
-├── Cadastros    ├── Cadastros    ├── Cadastros     ├── Schema exclusivo
-├── Despacho     ├── Despacho     ├── Despacho      ├── SLA 99.9%
-├── PWA          ├── PWA          ├── PWA           ├── API aberta
-├── Importação   ├── Importação   ├── Importação    ├── Suporte dedicado
-│                ├── IA WhatsApp  ├── IA WhatsApp   └── Customizações
-│                ├── NFS-e        ├── IA Voz
-│                │                ├── NFS-e
-│                │                ├── Estoque
-│                │                └── Migração assistida
+Starter           Pro               Business           Enterprise
+├── Chamados      ├── Chamados      ├── Chamados       ├── Tudo Business
+├── Cadastros     ├── Cadastros     ├── Cadastros      ├── Schema exclusivo
+├── Despacho      ├── Despacho      ├── Despacho       ├── SLA 99.9%
+├── PWA Mecânico  ├── PWA Mecânico  ├── PWA Mecânico   ├── API sem rate limit
+├── Dashboard     ├── Dashboard     ├── Dashboard      ├── Suporte dedicado
+├── Importação    ├── Importação    ├── Importação     └── Customizações
+│                 ├── API Pública   ├── API Pública
+│                 ├── Webhooks      ├── Webhooks
+│                 ├── NFS-e         ├── NFS-e
+│                 │                 ├── Estoque
+│                 │                 ├── Contratos
+│                 │                 └── Relatórios BI
 ```
+
+### 2.2 Limites de API por Plano
+
+| Plano | API | Rate Limit | Webhooks | API Keys |
+|-------|-----|------------|----------|----------|
+| Starter | ❌ Não incluso | — | — | — |
+| Pro | ✅ | 60 req/min | 3 webhooks | 2 keys |
+| Business | ✅ | 300 req/min | 10 webhooks | 5 keys |
+| Enterprise | ✅ | Sem limite | Ilimitado | Ilimitado |
 
 ---
 
-## 3. Projeção de Receita
+## 3. Projeção de Receita — Gerenciamento
 
 | Cenário | Clientes | Ticket Médio | Receita Bruta/mês |
 |---------|----------|-------------|-------------------|
-| **Conservador** (Baseado no plano Pro) | 70 | R$ 597 | R$ 41.790 |
-| **Realista** (mix Pro/Business) | 70 | R$ 750 | R$ 52.500 |
-| **Otimista** (expansão 100 clientes) | 100 | R$ 750 | R$ 75.000 |
+| **Conservador** | 40 | R$ 397 | R$ 15.880 |
+| **Realista** (mix Pro/Business) | 60 | R$ 500 | R$ 30.000 |
+| **Otimista** (expansão) | 100 | R$ 550 | R$ 55.000 |
+
+> **Nota:** A projeção mudou em relação à v1.0 pois o ticket médio é menor (gerenciamento apenas, sem atendimento incluso). A receita do sistema de atendimento é contabilizada separadamente.
 
 ### Margem
 
-- **Custo de infraestrutura:** ~R$ 1.000 a 2.000/mês em qualquer cenário
-- **Margem bruta:** superior a **95%** após desenvolvimento amortizado
+- **Custo de infraestrutura:** ~R$ 500 a 1.000/mês (sem custos de WhatsApp/VoIP/LLM)
+- **Margem bruta:** superior a **96%** após desenvolvimento amortizado
 
 ---
 
 ## 4. Custos de Infraestrutura
 
-**Base de cálculo:** 70 clientes ativos, média de 500 chamados/dia (agregado).
+**Base de cálculo:** 60 clientes ativos.
 
-### 4.1 Comparativo: MVP Self-Hosted vs Stack Paga
+| Item | Custo Mensal |
+|------|-------------|
+| Hospedagem VPS (Coolify) | R$ 200 a 400/mês |
+| PostgreSQL (mesmo servidor) | Incluso |
+| Redis (mesmo servidor) | Incluso |
+| Backup (S3/Backblaze) | R$ 30 a 50/mês |
+| Domínio + SSL | R$ 10/mês |
+| NFS-e (Nuvem Fiscal) — Fase 2 | R$ 150/mês |
+| **TOTAL** | **R$ 390 a 610/mês** |
 
-| Item | Stack Paga (Twilio/Zenvia) | MVP Self-Hosted |
-|------|--------------------------|-----------------|
-| Hospedagem + banco | R$ 300 a 800/mês | R$ 200 a 500/mês (Coolify VPS) |
-| WhatsApp | R$ 400 a 900/mês | R$ 50/mês (infra Evolution API) |
-| VOIP | R$ 400 a 900/mês | R$ 150 a 400/mês (Asterisk VPS) |
-| LLM (GPT-4o-mini) | R$ 80 a 220/mês | R$ 80 a 220/mês (igual) |
-| STT (Whisper API) | R$ 30 a 80/mês | R$ 30 a 80/mês (ou grátis self-hosted) |
-| NFS-e (Nuvem Fiscal) | R$ 150/mês | R$ 150/mês (igual) |
-| **TOTAL** | **R$ 1.360 a 3.050/mês** | **R$ 660 a 1.400/mês** |
-
-### 4.2 Evolução para Produção
-
-- Evolution API adequada para MVP e validação
-- Migrar para **Meta Cloud API** quando volume > 5.000 conversas/mês
-- Custo adicional diluído no preço do plano Business
+> **Nota:** Custos de WhatsApp, VoIP e LLM ficam no sistema de atendimento, reduzindo drasticamente o custo do gerenciamento.
 
 ---
 
-## 5. Revenue Share por Automação (Opcional)
+## 5. Revenue Share por Integração (Opcional)
 
-> Cobrar **R$ 1,50 por chamado fechado automaticamente pela IA** sem intervenção humana.
+Para incentivar o uso da API e monetizar integrações:
 
-Isso alinha o incentivo do cliente com o uso da plataforma:
-- Quanto mais a IA trabalha → mais ele paga
-- Quanto mais a IA trabalha → mais ele **economiza** em atendentes
-- O cliente só paga quando a automação entrega valor real
+> Cobrar **R$ 0,50 por chamado aberto via API** acima da franquia do plano.
 
-### Projeção (500 chamados/dia, 30% automação IA)
+| Plano | Franquia API/mês | Excedente |
+|-------|-------------------|-----------|
+| Pro | 500 chamados via API | R$ 0,50/chamado extra |
+| Business | 2.000 chamados via API | R$ 0,30/chamado extra |
+| Enterprise | Ilimitado | — |
+
+### Projeção (60 clientes, 20% usando API)
 
 ```
-500 chamados/dia × 30% automação = 150 chamados IA/dia
-150 × R$ 1,50 = R$ 225/dia
-R$ 225 × 30 dias = R$ 6.750/mês adicional
+12 clientes usando API × média 300 chamados excedentes/mês
+= 3.600 chamados × R$ 0,50 = R$ 1.800/mês adicional
 ```
 
 ---
@@ -112,25 +149,33 @@ R$ 225 × 30 dias = R$ 6.750/mês adicional
 
 ### 6.1 Redução de Atrito
 
-A maior barreira para fechar negócio não é tecnológica — é a **fricção de migração**.
-
 | Estratégia | Detalhes |
 |-----------|----------|
 | Migração assistida gratuita | Inclusa no plano Business |
-| Templates pré-formatados | Disponibilizados **antes** do contrato |
+| Templates pré-formatados | CSV/Excel disponibilizados **antes** do contrato |
 | Operação paralela | Sistema antigo + novo por 30 dias |
-| Suporte de implantação | SLA de resposta em 2h na primeira semana |
+| API de importação | Migração de dados automatizada para clientes com sistemas legados |
+| Documentação da API | Disponível publicamente para avaliação técnica antes da contratação |
 
 ### 6.2 Funil de Conversão
 
 ```
-70 empresas (relacionamento existente)
-    └── Apresentação da plataforma (POC)
-        └── Migração assistida gratuita (Business)
-            └── Operação paralela (30 dias)
-                └── Desligamento sistema antigo
-                    └── Upsell: IA, NFS-e, Estoque
+Empresas de manutenção (relacionamento existente via callcenter)
+    └── Apresentação do sistema de gerenciamento (demo)
+        └── Trial gratuito de 14 dias (plano Pro)
+            └── Migração assistida (Business)
+                └── Operação paralela (30 dias)
+                    └── Desligamento sistema antigo
+                        └── Upsell: NFS-e, Estoque, Relatórios BI
 ```
+
+### 6.3 Vantagem Competitiva via Callcenter
+
+A empresa de callcenter já possui **relacionamento com ~70 empresas**. Mesmo que os sistemas sejam independentes, o callcenter pode:
+
+- **Indicar** o sistema de gerenciamento para seus clientes
+- **Demonstrar** a integração API funcionando na prática
+- **Cobrar comissão** por indicação (revenue share entre os 2 produtos)
 
 ---
 
@@ -141,21 +186,22 @@ A maior barreira para fechar negócio não é tecnológica — é a **fricção 
 ### 7.1 Operacional
 
 - [ ] Qual o volume médio de chamados por dia (total e por cliente)?
-- [ ] Os clientes já têm WhatsApp Business próprio ou tudo cai no número do callcenter?
-- [ ] O callcenter emite OS em nome dos clientes ou apenas repassa para o sistema deles?
 - [ ] Os mecânicos têm smartphone? Usam algum app hoje?
-- [ ] Existe SLA de atendimento contratado com os clientes hoje?
+- [ ] Existe SLA de atendimento contratado com os condomínios hoje?
+- [ ] Como é feito o despacho de mecânico atualmente?
+- [ ] Os clientes já têm algum sistema de gestão de OS?
 
 ### 7.2 Técnico / Dados
 
-- [ ] Existe software atual que precisa de integração ou apenas migração?
-- [ ] Há contrato de exclusividade com softwares atuais?
+- [ ] Existe software atual que precisa de migração de dados?
 - [ ] Em que formato estão os dados hoje? (planilha, sistema, papel)
 - [ ] Quantos elevadores em média cada cliente administra?
+- [ ] Os clientes têm equipe técnica para usar API ou preferem só painel web?
 
 ### 7.3 Comercial
 
-- [ ] Qual o ticket médio cobrado por cliente hoje (sem software)?
+- [ ] Qual o ticket médio cobrado por cliente hoje?
 - [ ] Os clientes pagam pelo software básico oferecido hoje?
 - [ ] Há clientes que já manifestaram interesse em solução mais completa?
 - [ ] Qual o prazo ideal para ter um MVP funcionando?
+- [ ] Quantas empresas usariam a integração via API desde o início?
