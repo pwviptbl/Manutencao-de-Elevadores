@@ -83,22 +83,23 @@ make setup
 │   ├── app/
 │   │   ├── Http/Controllers/
 │   │   │   ├── Api/             # Rotas internas (Sanctum)
-│   │   │   └── Public/V1/      # API Pública v1 (API Key)
-│   │   ├── Middleware/          # EnsureTenant, AuthenticateApiKey, etc.
-│   │   ├── Models/              # Tenant, User, ServiceOrder, ApiKey, Webhook...
-│   │   ├── Services/            # ApiKey, Webhook, Order, Dispatch
-│   │   ├── Jobs/                # Import, Webhooks, Notificações
-│   │   └── Events/              # Eventos de chamados e mecânicos
+│   │   │   └── Public/V1/       # API Pública v1 (API Key)
+│   │   ├── Http/Middleware/     # EnsureTenant, AuthenticateApiKey, CheckApiScope, ApiRateLimiter
+│   │   ├── Models/              # Tenant, User, ServiceOrder, Technician, Elevator, Condominium...
+│   │   ├── Services/            # DispatchService + Invoice/ (Fase 2: NFS-e)
+│   │   ├── Jobs/                # ProcessImport + futuros: DispatchWebhook, Notificações
+│   │   ├── Events/              # ServiceOrderCreated, ServiceOrderUpdated, EmergencyDetected...
+│   │   └── Enums/               # ServiceOrderStatus, ServiceOrderPriority, TenantPlan...
 │   ├── database/{migrations,seeders,factories}/
 │   ├── routes/
-│   │   ├── api.php              # Rotas internas (Sanctum)
-│   │   └── api_v1.php           # API Pública v1 (API Key)
+│   │   ├── api.php              # Rotas internas (Sanctum + EnsureTenant)
+│   │   └── api_v1.php           # API Pública v1 (API Key + RateLimit + Scopes)
 │   └── tests/{Feature,Unit}/
 ├── frontend/             # Vue 3 + Vite
 │   └── src/
-│       ├── components/{layout,orders,alerts,api-keys,webhooks,shared}/
-│       ├── pages/{orders,condominiums,elevators,settings,mechanic}/
-│       ├── stores/
+│       ├── components/{layout,orders,alerts,shared}/
+│       ├── pages/{orders,condominiums,elevators,technicians,mechanic}/
+│       ├── stores/              # Pinia
 │       └── composables/
 ├── docker/
 │   ├── nginx/default.conf
